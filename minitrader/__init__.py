@@ -3,6 +3,8 @@
 from .broker import Broker
 from .cerebro import Cerebro
 from .feed import CSVFeed, PandasFeed
+from .indicator import Indicator
+from . import indicators as ind
 from .order import Direction, Order, OrderStatus, OrderType
 from .position import Position
 from .sizer import FixedSizer, PercentSizer
@@ -13,6 +15,7 @@ __all__ = [
     "Cerebro",
     "CSVFeed",
     "PandasFeed",
+    "Indicator",
     "OrderType",
     "Direction",
     "OrderStatus",
@@ -21,4 +24,5 @@ __all__ = [
     "Strategy",
     "FixedSizer",
     "PercentSizer",
+    "ind",
 ]

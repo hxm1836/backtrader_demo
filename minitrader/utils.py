@@ -28,6 +28,16 @@ class LineSeries:
         """Update the current pointer index."""
         self._idx = idx
 
+    @property
+    def idx(self) -> int:
+        """Return current pointer index."""
+        return self._idx
+
+    @property
+    def values(self) -> NDArray[Any]:
+        """Return underlying full numpy array."""
+        return self._data
+
     def _current(self) -> Any:
         if self._idx < 0:
             raise IndexError("No current value available. Call advance() first.")
