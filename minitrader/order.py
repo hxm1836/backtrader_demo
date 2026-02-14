@@ -42,6 +42,7 @@ _ORDER_REF_COUNTER = count(1)
 class Order:
     """Trading order with execution details and lifecycle state."""
 
+    data_name: str
     order_type: OrderType
     direction: Direction
     size: float
