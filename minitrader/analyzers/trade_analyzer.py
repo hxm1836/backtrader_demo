@@ -17,6 +17,7 @@ class TradeAnalyzer(Analyzer):
         self._analysis: dict[str, Any] = {}
 
     def run(self) -> None:
+        """Compute trade-level performance statistics."""
         trades = list(getattr(self.strategy, "trades", []))
         pnls = np.asarray([float(t.get("pnl", 0.0)) for t in trades], dtype=float)
         durations = np.asarray([float(t.get("duration", 0.0)) for t in trades], dtype=float)
@@ -56,4 +57,5 @@ class TradeAnalyzer(Analyzer):
         }
 
     def get_analysis(self) -> dict[str, Any]:
+        """Return trade statistics dictionary."""
         return self._analysis

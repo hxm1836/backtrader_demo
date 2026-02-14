@@ -21,6 +21,7 @@ class DrawdownAnalyzer(Analyzer):
         }
 
     def run(self) -> None:
+        """Compute drawdown series, max drawdown, and max duration."""
         values = np.asarray([v for _, v in self.equity_curve], dtype=float)
         if values.size == 0:
             self._analysis = {"max_drawdown": 0.0, "max_drawdown_duration": 0, "drawdown_series": []}
@@ -47,4 +48,5 @@ class DrawdownAnalyzer(Analyzer):
         }
 
     def get_analysis(self) -> dict[str, Any]:
+        """Return drawdown analysis dictionary."""
         return self._analysis

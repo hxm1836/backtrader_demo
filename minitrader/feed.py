@@ -96,6 +96,19 @@ class DataFeed(Iterator["DataFeed"]):
             return self
         raise StopIteration
 
+    @staticmethod
+    def _match_date_col(columns: pd.Index, date_col: str) -> str | None:
+        wanted = date_col.lower()
+        for col in columns:
+            if col.lower() == wanted:
+                return col
+        if wanted == "datetime":
+            for fallback in ("date", "time", "timestamp"):
+                for col in columns:
+                    if col.lower() == fallback:
+                        return col
+        return None
+
 
 class CSVFeed(DataFeed):
     """Data feed loaded from a CSV file."""
@@ -107,13 +120,10 @@ class CSVFeed(DataFeed):
         date_format: Optional[str] = None,
         **read_csv_kwargs: Any,
     ) -> None:
+        """Load feed from CSV file."""
         path = Path(filepath)
         df = pd.read_csv(path, **read_csv_kwargs)
-        date_col_match = None
-        for col in df.columns:
-            if col == date_col or col.lower() == date_col.lower():
-                date_col_match = col
-                break
+        date_col_match = self._match_date_col(df.columns, date_col)
         if date_col_match is None:
             raise ValueError(f"Date column '{date_col}' not found in CSV.")
 
@@ -137,12 +147,9 @@ class PandasFeed(DataFeed):
         date_col: str = "datetime",
         date_format: Optional[str] = None,
     ) -> None:
+        """Load feed from in-memory DataFrame."""
         df = data.copy()
-        date_col_match = None
-        for col in df.columns:
-            if col == date_col or col.lower() == date_col.lower():
-                date_col_match = col
-                break
+        date_col_match = self._match_date_col(df.columns, date_col)
         if date_col_match is None:
             raise ValueError(f"Date column '{date_col}' not found in DataFrame.")
 

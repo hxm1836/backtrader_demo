@@ -21,6 +21,7 @@ class ReturnsAnalyzer(Analyzer):
         }
 
     def run(self) -> None:
+        """Compute total return, annualized return, and daily returns."""
         values = np.asarray([v for _, v in self.equity_curve], dtype=float)
         if values.size < 2 or values[0] == 0.0:
             self._analysis = {"total_return": 0.0, "annual_return": 0.0, "daily_returns": []}
@@ -38,4 +39,5 @@ class ReturnsAnalyzer(Analyzer):
         }
 
     def get_analysis(self) -> dict[str, Any]:
+        """Return returns analysis dictionary."""
         return self._analysis

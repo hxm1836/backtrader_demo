@@ -24,6 +24,7 @@ class SharpeAnalyzer(Analyzer):
         self._analysis: dict[str, Any] = {"sharpe_ratio": 0.0}
 
     def run(self) -> None:
+        """Compute annualized Sharpe ratio."""
         values = np.asarray([v for _, v in self.equity_curve], dtype=float)
         if values.size < 2 or values[0] == 0.0:
             self._analysis = {"sharpe_ratio": 0.0}
@@ -46,4 +47,5 @@ class SharpeAnalyzer(Analyzer):
         self._analysis = {"sharpe_ratio": sharpe_ratio}
 
     def get_analysis(self) -> dict[str, Any]:
+        """Return Sharpe analysis dictionary."""
         return self._analysis
