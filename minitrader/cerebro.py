@@ -21,6 +21,7 @@ class Cerebro:
         self._analyzer_specs: list[tuple[type[Any], dict[str, Any]]] = []
         self.broker: Broker = Broker(cash=10000.0, commission=0.001)
         self._equity_curve: list[tuple[datetime | Any, float]] = []
+        self._last_strategies: list[Strategy] = []
 
     def adddata(self, data: DataFeed, name: str | None = None) -> DataFeed:
         """Add a data feed to the engine."""
@@ -101,18 +102,18 @@ class Cerebro:
             strat.stop()
 
         self._run_analyzers(strategies)
+        self._last_strategies = strategies
         return strategies
 
     def plot(self, **kwargs: Any) -> Any:
         """Delegate plotting to plot module."""
-        try:
-            from . import plot as plot_module
-        except Exception as exc:  # pragma: no cover
-            raise NotImplementedError("Plot module is not available yet.") from exc
+        if not self._last_strategies:
+            raise ValueError("No strategy result found. Run cerebro.run() before plot().")
+        from .plot import MiniPlot
 
-        if hasattr(plot_module, "plot"):
-            return plot_module.plot(self._equity_curve, **kwargs)
-        raise NotImplementedError("plot.plot(...) is not implemented.")
+        strategy = kwargs.pop("strategy", None) or self._last_strategies[0]
+        savefig = kwargs.pop("savefig", None)
+        return MiniPlot(strategy=strategy, equity_curve=self._equity_curve, **kwargs).plot(savefig=savefig)
 
     @staticmethod
     def _get_data_name(data: DataFeed) -> str:

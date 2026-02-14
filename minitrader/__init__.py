@@ -9,6 +9,7 @@ from .indicator import Indicator
 from . import indicators as ind
 from .order import Direction, Order, OrderStatus, OrderType
 from .position import Position
+from .plot import MiniPlot
 from .sizer import FixedSizer, PercentSizer
 from .strategy import Strategy
 
@@ -24,6 +25,7 @@ __all__ = [
     "OrderStatus",
     "Order",
     "Position",
+    "MiniPlot",
     "Strategy",
     "FixedSizer",
     "PercentSizer",
