@@ -38,6 +38,9 @@ class DataFeed(Iterator["DataFeed"]):
 
     @classmethod
     def _validate_and_normalize(cls, df: pd.DataFrame) -> None:
+        rename_map = {col: col.strip().lower() for col in df.columns}
+        df.rename(columns=rename_map, inplace=True)
+
         missing = [c for c in cls.REQUIRED_COLUMNS if c not in df.columns]
         if missing:
             raise ValueError(f"Missing required columns: {missing}")
@@ -106,11 +109,16 @@ class CSVFeed(DataFeed):
     ) -> None:
         path = Path(filepath)
         df = pd.read_csv(path, **read_csv_kwargs)
-        if date_col not in df.columns:
+        date_col_match = None
+        for col in df.columns:
+            if col == date_col or col.lower() == date_col.lower():
+                date_col_match = col
+                break
+        if date_col_match is None:
             raise ValueError(f"Date column '{date_col}' not found in CSV.")
 
-        if date_col != "datetime":
-            df = df.rename(columns={date_col: "datetime"})
+        if date_col_match != "datetime":
+            df = df.rename(columns={date_col_match: "datetime"})
 
         if date_format:
             df["datetime"] = pd.to_datetime(df["datetime"], format=date_format)
@@ -130,11 +138,16 @@ class PandasFeed(DataFeed):
         date_format: Optional[str] = None,
     ) -> None:
         df = data.copy()
-        if date_col not in df.columns:
+        date_col_match = None
+        for col in df.columns:
+            if col == date_col or col.lower() == date_col.lower():
+                date_col_match = col
+                break
+        if date_col_match is None:
             raise ValueError(f"Date column '{date_col}' not found in DataFrame.")
 
-        if date_col != "datetime":
-            df = df.rename(columns={date_col: "datetime"})
+        if date_col_match != "datetime":
+            df = df.rename(columns={date_col_match: "datetime"})
 
         if date_format:
             df["datetime"] = pd.to_datetime(df["datetime"], format=date_format)
