@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from itertools import count
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 class OrderType(Enum):
@@ -41,6 +41,10 @@ _ORDER_REF_COUNTER = count(1)
 @dataclass
 class Order:
     """Trading order with execution details and lifecycle state."""
+
+    MARKET: ClassVar[OrderType] = OrderType.MARKET
+    LIMIT: ClassVar[OrderType] = OrderType.LIMIT
+    STOP: ClassVar[OrderType] = OrderType.STOP
 
     data_name: str
     order_type: OrderType
