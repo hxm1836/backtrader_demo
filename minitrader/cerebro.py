@@ -81,10 +81,12 @@ class Cerebro:
             self._update_indicators(strategies)
             current_data = {self._get_data_name(data): data for data in self.datas}
             broker.execute_pending_orders(current_data=current_data, dt=dt)
+            self._dispatch_broker_notifications(strategies)
 
             if (bar_index + 1) >= max(1, warmup):
                 for strat in strategies:
                     strat.next()
+                self._dispatch_broker_notifications(strategies)
 
             current_prices = {}
             for data in self.datas:
@@ -160,21 +162,41 @@ class Cerebro:
         if not self._analyzer_specs:
             return
         for strat in strategies:
-            analyzers: list[Any] = []
+            analyzers: dict[str, Any] = {}
             for analyzer_cls, kwargs in self._analyzer_specs:
-                analyzer = self._build_analyzer(analyzer_cls, strat, kwargs)
-                analyzers.append(analyzer)
-                analyze_fn = getattr(analyzer, "analyze", None)
-                if callable(analyze_fn):
-                    analyze_fn()
-            setattr(strat, "analyzers", analyzers)
+                analyzer = self._build_analyzer(analyzer_cls, strat, self._equity_curve, kwargs)
+                run_fn = getattr(analyzer, "run", None)
+                if callable(run_fn):
+                    run_fn()
+                analyzers[analyzer_cls.__name__] = analyzer
+            strat.analyzers = analyzers
 
     @staticmethod
-    def _build_analyzer(analyzer_cls: type[Any], strategy: Strategy, kwargs: dict[str, Any]) -> Any:
+    def _build_analyzer(
+        analyzer_cls: type[Any],
+        strategy: Strategy,
+        equity_curve: list[tuple[Any, float]],
+        kwargs: dict[str, Any],
+    ) -> Any:
         try:
-            return analyzer_cls(strategy=strategy, broker=strategy.broker, **kwargs)
+            return analyzer_cls(strategy=strategy, equity_curve=equity_curve, **kwargs)
         except TypeError:
             try:
-                return analyzer_cls(strategy, strategy.broker, **kwargs)
+                return analyzer_cls(strategy, equity_curve, **kwargs)
             except TypeError:
                 return analyzer_cls(**kwargs)
+
+    def _dispatch_broker_notifications(self, strategies: list[Strategy]) -> None:
+        orders = self.broker.consume_order_updates()
+        trades = self.broker.consume_trade_updates()
+
+        if not orders and not trades:
+            return
+
+        for strat in strategies:
+            for order in orders:
+                strat.orders.append(order)
+                strat.notify_order(order)
+            for trade in trades:
+                strat.trades.append(trade)
+                strat.notify_trade(trade)

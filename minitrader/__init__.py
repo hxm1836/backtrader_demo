@@ -1,5 +1,7 @@
 """MiniTrader package exports."""
 
+from .analyzer import Analyzer
+from . import analyzers
 from .broker import Broker
 from .cerebro import Cerebro
 from .feed import CSVFeed, PandasFeed
@@ -13,6 +15,7 @@ from .strategy import Strategy
 __all__ = [
     "Broker",
     "Cerebro",
+    "Analyzer",
     "CSVFeed",
     "PandasFeed",
     "Indicator",
@@ -25,4 +28,5 @@ __all__ = [
     "FixedSizer",
     "PercentSizer",
     "ind",
+    "analyzers",
 ]

@@ -26,6 +26,9 @@ class Strategy:
     def __init__(self, datas: list[DataFeed], broker: Broker, **kwargs: Any) -> None:
         self.datas: list[DataFeed] = datas
         self.broker: Broker = broker
+        self.orders: list[Order] = []
+        self.trades: list[dict[str, Any]] = []
+        self.analyzers: dict[str, Any] = {}
 
         if not datas:
             raise ValueError("Strategy requires at least one DataFeed in datas.")

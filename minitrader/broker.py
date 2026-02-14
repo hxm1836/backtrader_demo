@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
+import pandas as pd
+
 from .order import Direction, Order, OrderStatus, OrderType
 from .position import Position
 
@@ -19,6 +21,9 @@ class Broker:
         self.value: float = float(cash)
         self.positions: dict[str, Position] = {}
         self._pending_orders: list[Order] = []
+        self._position_entry_dt: dict[str, Any] = {}
+        self._last_order_updates: list[Order] = []
+        self._last_trade_updates: list[dict[str, Any]] = []
 
     def setcash(self, amount: float) -> None:
         """Set available cash."""
@@ -33,19 +38,24 @@ class Broker:
         """Submit an order to the pending queue."""
         if order.size <= 0:
             order.status = OrderStatus.REJECTED
+            self._last_order_updates.append(order)
             return order
 
         if order.order_type in {OrderType.LIMIT, OrderType.STOP} and order.price is None:
             order.status = OrderStatus.REJECTED
+            self._last_order_updates.append(order)
             return order
 
         order.status = OrderStatus.SUBMITTED
         order.status = OrderStatus.ACCEPTED
         self._pending_orders.append(order)
+        self._last_order_updates.append(order)
         return order
 
     def execute_pending_orders(self, current_data: Mapping[str, Any], dt: datetime) -> None:
         """Try matching all pending orders on current bar data."""
+        self._last_order_updates = []
+        self._last_trade_updates = []
         still_pending: list[Order] = []
 
         for order in self._pending_orders:
@@ -87,11 +97,14 @@ class Broker:
         size = float(order.size)
         trade_value = exec_price * size
         commission_fee = trade_value * self.commission
+        position = self.positions.setdefault(order.data_name, Position())
+        prev_size = position.size
 
         if order.direction == Direction.BUY:
             total_cost = trade_value + commission_fee
             if self.cash < total_cost:
                 order.status = OrderStatus.REJECTED
+                self._last_order_updates.append(order)
                 return False
             self.cash -= total_cost
             signed_size = size
@@ -99,10 +112,30 @@ class Broker:
             self.cash += trade_value - commission_fee
             signed_size = -size
 
-        position = self.positions.setdefault(order.data_name, Position())
-        position.update(signed_size, exec_price)
+        realized = position.update(signed_size, exec_price)
         order.execute(exec_price, size, dt, commission_fee)
+        self._last_order_updates.append(order)
+        self._record_trade_event(
+            order=order,
+            dt=dt,
+            prev_size=prev_size,
+            new_size=position.size,
+            signed_size=signed_size,
+            realized=realized - commission_fee,
+        )
         return True
+
+    def consume_order_updates(self) -> list[Order]:
+        """Return and clear latest order status updates."""
+        updates = list(self._last_order_updates)
+        self._last_order_updates = []
+        return updates
+
+    def consume_trade_updates(self) -> list[dict[str, Any]]:
+        """Return and clear latest trade updates."""
+        updates = list(self._last_trade_updates)
+        self._last_trade_updates = []
+        return updates
 
     @staticmethod
     def _extract_bar_value(bar: Any, field: str) -> float:
@@ -151,3 +184,44 @@ class Broker:
             except Exception:
                 continue
         return prices
+
+    def _record_trade_event(
+        self,
+        order: Order,
+        dt: datetime,
+        prev_size: float,
+        new_size: float,
+        signed_size: float,
+        realized: float,
+    ) -> None:
+        data_name = order.data_name
+        if prev_size == 0 and new_size != 0:
+            self._position_entry_dt[data_name] = dt
+
+        closed_qty = 0.0
+        if prev_size != 0 and ((prev_size > 0 and signed_size < 0) or (prev_size < 0 and signed_size > 0)):
+            closed_qty = min(abs(prev_size), abs(signed_size))
+
+        if closed_qty > 0:
+            entry_dt = self._position_entry_dt.get(data_name, dt)
+            duration_days = max(
+                0.0,
+                (pd.Timestamp(dt) - pd.Timestamp(entry_dt)).total_seconds() / 86400.0,
+            )
+            self._last_trade_updates.append(
+                {
+                    "data_name": data_name,
+                    "pnl": float(realized),
+                    "size": float(closed_qty),
+                    "entry_dt": entry_dt,
+                    "exit_dt": dt,
+                    "duration": duration_days,
+                }
+            )
+
+        if new_size == 0:
+            self._position_entry_dt.pop(data_name, None)
+        elif prev_size == 0 and new_size != 0:
+            self._position_entry_dt[data_name] = dt
+        elif (prev_size > 0 > new_size) or (prev_size < 0 < new_size):
+            self._position_entry_dt[data_name] = dt
