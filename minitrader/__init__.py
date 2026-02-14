@@ -1,6 +1,7 @@
 """MiniTrader package exports."""
 
 from .broker import Broker
+from .cerebro import Cerebro
 from .feed import CSVFeed, PandasFeed
 from .order import Direction, Order, OrderStatus, OrderType
 from .position import Position
@@ -9,6 +10,7 @@ from .strategy import Strategy
 
 __all__ = [
     "Broker",
+    "Cerebro",
     "CSVFeed",
     "PandasFeed",
     "OrderType",

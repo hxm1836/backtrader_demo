@@ -20,6 +20,15 @@ class Broker:
         self.positions: dict[str, Position] = {}
         self._pending_orders: list[Order] = []
 
+    def setcash(self, amount: float) -> None:
+        """Set available cash."""
+        self.cash = float(amount)
+        self.value = float(amount)
+
+    def setcommission(self, commission: float) -> None:
+        """Set commission ratio (e.g. 0.001 for 0.1%)."""
+        self.commission = float(commission)
+
     def submit_order(self, order: Order) -> Order:
         """Submit an order to the pending queue."""
         if order.size <= 0:
